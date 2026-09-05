@@ -1,35 +1,24 @@
-name: Extract and Build Android
+name: Build Android APK
 
 on:
   push:
-    paths:
-      - 'social-hub-android.zip'
-      - '.github/workflows/extract-and-build.yml'
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3g
 
 jobs:
-  extract-build:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Extract Android project
-        run: |
-          test -f social-hub-android.zip
-          unzip -o social-hub-android.zip
-          rm social-hub-android.zip
-          test -f settings.gradle.kts
-          test -f app/build.gradle.kts
-          test -f app/src/main/AndroidManifest.xml
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
@@ -48,19 +37,7 @@ jobs:
         run: gradle wrapper --gradle-version 8.5
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
-
-      - name: Commit extracted project
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No extracted project changes to commit."
-          else
-            git commit -m "Extract Social Hub Android project and build APK"
-            git push
-          fi
+        run: ./gradlew --no-daemon assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

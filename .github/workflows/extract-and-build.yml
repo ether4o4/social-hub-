@@ -37,6 +37,14 @@ jobs:
           sed -i '/id("org.jetbrains.kotlin.plugin.compose")/d' app/build.gradle.kts
           sed -i '/android:icon=/d;/android:roundIcon=/d' app/src/main/AndroidManifest.xml
 
+      - name: Repair Social Hub Kotlin sources
+        run: |
+          sed -i 's/AnimatedVisibility(/androidx.compose.animation.AnimatedVisibility(/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
+          sed -i '/^package com.example.socialhub.ui$/a import com.example.socialhub.ui.components.FeedCard' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
+          sed -i 's/viewModel\.showFilter = !viewModel\.showFilter/viewModel.toggleFilter()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
+          sed -i 's/Icons\.Default\.Up/Icons.Default.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
+          sed -i '/^package com.example.socialhub.ui$/a import androidx.compose.material.icons.filled.KeyboardArrowUp\nimport kotlin.math.roundToInt' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
+
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
 

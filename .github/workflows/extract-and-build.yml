@@ -1,10 +1,14 @@
-name: Extract and Build Android
+name: Social Hub Android CI
 
 on:
   push:
     paths:
-      - 'social-hub-android.zip'
+      - 'app/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
       - '.github/workflows/extract-and-build.yml'
+      - 'social-hub-android.zip'
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -14,7 +18,7 @@ env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3g
 
 jobs:
-  extract-build:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,22 +26,44 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract Android project
+      - name: Bootstrap canonical source if needed
         run: |
-          test -f social-hub-android.zip
-          unzip -o social-hub-android.zip
-          rm social-hub-android.zip
+          if [ ! -f settings.gradle.kts ]; then
+            test -f social-hub-android.zip
+            unzip -o social-hub-android.zip
+            rm social-hub-android.zip
+          fi
           test -f settings.gradle.kts
           test -f app/build.gradle.kts
           test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/com/example/socialhub/MainActivity.kt
 
-      - name: Install Android SDK components
-        uses: android-actions/setup-android@v3
-
-      - name: Accept SDK licenses and install platform
+      - name: Validate source tree
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          ! grep -R -nE 'PointerEventType\.Up\b' app/src/main/java || true
+          ! grep -R -nE 'Icons\.[A-Za-z0-9_.]+\.Up\b' app/src/main/java || true
+          ! grep -R -n 'viewModel\.showFilter\s*=' app/src/main/java || true
+
+      - name: Persist canonical source tree
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add build.gradle.kts gradle.properties settings.gradle.kts app .github/workflows/extract-and-build.yml
+          if git diff --cached --quiet; then
+            echo "Canonical source already current."
+          else
+            git commit -m "chore: persist canonical Android source tree"
+            git push
+          fi
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install required SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -45,20 +71,11 @@ jobs:
       - name: Generate Gradle wrapper
         run: gradle wrapper --gradle-version 8.5
 
+      - name: Run unit tests
+        run: ./gradlew test --stacktrace
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
-
-      - name: Commit extracted project
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No extracted project changes to commit."
-          else
-            git commit -m "Extract Social Hub Android project and build APK"
-            git push
-          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -66,3 +83,12 @@ jobs:
           name: social-hub-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: socialhub-${{ github.run_number }}
+          name: Social Hub ${{ github.run_number }}
+          generate_release_notes: true
+          files: app/build/outputs/apk/debug/*.apk

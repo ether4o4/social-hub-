@@ -43,7 +43,7 @@ jobs:
           sed -i '/^package com.example.socialhub.ui$/a import com.example.socialhub.ui.components.FeedCard' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
           sed -i 's/viewModel\.showFilter = !viewModel\.showFilter/viewModel.toggleFilter()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
           sed -i 's/viewModel\.showFilter = false/viewModel.closeDropdowns()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
-          sed -i 's/Icons\.Default\.Up/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
+          sed -i -E 's/Icons\.[A-Za-z.]*\.Up/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
           sed -i 's/Icons\.Default\.KeyboardArrowUp/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
           sed -i '/^package com.example.socialhub.ui$/a import androidx.compose.material.icons.filled.KeyboardArrowUp\nimport kotlin.math.roundToInt' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
 

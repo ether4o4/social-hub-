@@ -33,7 +33,16 @@ class SocialHubViewModel : ViewModel() {
         private set
     var expandedId by mutableStateOf<String?>(null)
         private set
-    var sidebarOpen by mutableStateOf(false)
+
+    private var _sidebarOpen by mutableStateOf(false)
+    var sidebarOpen: Boolean
+        get() = _sidebarOpen
+        set(value) {
+            if (_sidebarOpen == value) return
+            _sidebarOpen = value
+            if (value && refreshMode == "on_open") refresh(2)
+            if (!value) closeDropdowns()
+        }
 
     private var liveJob: Job? = null
     private var hourlyJob: Job? = null
@@ -65,11 +74,6 @@ class SocialHubViewModel : ViewModel() {
             "hourly" -> startHourly()
             "on_open", "manual" -> Unit
         }
-    }
-
-    fun onSidebarOpened() {
-        sidebarOpen = true
-        if (refreshMode == "on_open") refresh(2)
     }
 
     fun toggleSettings() {
@@ -107,9 +111,7 @@ class SocialHubViewModel : ViewModel() {
             refreshing = true
             try {
                 delay(700)
-                repeat(count.coerceAtLeast(0)) {
-                    addGeneratedItem()
-                }
+                repeat(count.coerceAtLeast(0)) { addGeneratedItem() }
                 trimItems()
                 lastUpdated = System.currentTimeMillis()
             } finally {

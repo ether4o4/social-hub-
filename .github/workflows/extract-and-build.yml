@@ -40,9 +40,9 @@ jobs:
 
       - name: Validate source tree
         run: |
-          ! grep -R -nE 'PointerEventType\.Up\b' app/src/main/java || true
-          ! grep -R -nE 'Icons\.[A-Za-z0-9_.]+\.Up\b' app/src/main/java || true
-          ! grep -R -n 'viewModel\.showFilter\s*=' app/src/main/java || true
+          if grep -R -nE 'PointerEventType\.Up\b' app/src/main/java; then exit 1; fi
+          if grep -R -nE 'Icons\.[A-Za-z0-9_.]+\.Up\b' app/src/main/java; then exit 1; fi
+          if grep -R -n 'viewModel\.showFilter\s*=' app/src/main/java; then exit 1; fi
 
       - name: Persist canonical source tree
         if: github.event_name == 'push'
@@ -67,6 +67,8 @@ jobs:
 
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.5'
 
       - name: Run unit tests
         run: gradle test --stacktrace

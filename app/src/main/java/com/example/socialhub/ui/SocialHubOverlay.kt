@@ -1,6 +1,4 @@
 package com.example.socialhub.ui
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import kotlin.math.roundToInt
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -10,7 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -47,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.socialhub.viewmodel.SocialHubViewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
@@ -60,15 +58,8 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
     var isResizing by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Landing page behind
         LandingPage()
-
-        // Backdrop
-        AnimatedVisibility(
-            visible = viewModel.sidebarOpen,
-            enter = fadeIn(tween(300)),
-            exit = fadeOut(tween(300))
-        ) {
+        AnimatedVisibility(visible = viewModel.sidebarOpen, enter = fadeIn(tween(300)), exit = fadeOut(tween(300))) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -79,8 +70,6 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                     }
             )
         }
-
-        // Sidebar
         AnimatedVisibility(
             visible = viewModel.sidebarOpen,
             enter = slideInHorizontally(tween(500, easing = FastOutSlowInEasing)) { -it },
@@ -92,15 +81,10 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                     .fillMaxHeight()
                     .background(Color(0xFF1A0B2E).copy(alpha = 0.95f))
             ) {
-                SocialHubFeed(
-                    viewModel = viewModel,
-                    onClose = {
-                        viewModel.sidebarOpen = false
-                        viewModel.closeDropdowns()
-                    }
-                )
-
-                // Resize handle
+                SocialHubFeed(viewModel = viewModel, onClose = {
+                    viewModel.sidebarOpen = false
+                    viewModel.closeDropdowns()
+                })
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -128,7 +112,7 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                                                 isResizing = true
                                             }
                                         }
-                                        if (event.type == PointerEventType.Up) {
+                                        if (event.type == PointerEventType.Release) {
                                             isResizing = false
                                             break
                                         }
@@ -148,8 +132,6 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                 }
             }
         }
-
-        // Edge toggle handle
         var moved by remember { mutableStateOf(false) }
         Box(
             modifier = Modifier
@@ -167,11 +149,9 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                                 if (event.type == PointerEventType.Move) {
                                     val drag = change.position.y - startY
                                     if (kotlin.math.abs(drag) > 6) moved = true
-                                    if (moved) {
-                                        toggleY = (startTop + drag).coerceIn(100f, screenHeightPx - 100f)
-                                    }
+                                    if (moved) toggleY = (startTop + drag).coerceIn(100f, screenHeightPx - 100f)
                                 }
-                                if (event.type == PointerEventType.Up) {
+                                if (event.type == PointerEventType.Release) {
                                     if (!moved) {
                                         viewModel.sidebarOpen = !viewModel.sidebarOpen
                                         if (!viewModel.sidebarOpen) viewModel.closeDropdowns()
@@ -192,22 +172,11 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFFEC4899), Color(0xFF8B5CF6), Color(0xFF3B82F6))
-                            )
-                        ),
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFEC4899), Color(0xFF8B5CF6), Color(0xFF3B82F6)))),
                     contentAlignment = Alignment.Center
-                ) {
-                    Text("✦", color = Color.White, fontSize = 14.sp)
-                }
+                ) { Text("✦", color = Color.White, fontSize = 14.sp) }
                 Spacer(modifier = Modifier.width(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color(0xFFF43F5E))
-                )
+                Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFF43F5E)))
             }
         }
     }
@@ -215,34 +184,20 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
 
 @Composable
 private fun LandingPage() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFFEC4899), Color(0xFF8B5CF6), Color(0xFF3B82F6))
-                        )
-                    ),
+                    .background(Brush.horizontalGradient(listOf(Color(0xFFEC4899), Color(0xFF8B5CF6), Color(0xFF3B82F6)))),
                 contentAlignment = Alignment.Center
-            ) {
-                Text("✦", color = Color.White, fontSize = 24.sp)
-            }
+            ) { Text("✦", color = Color.White, fontSize = 24.sp) }
             Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                "Social Hub",
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text("Social Hub", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                "Drag the glowing handle on the left edge to open your unified social feed — every notification and timeline, one glass panel.",
+                "Drag the handle on the left edge to open your unified social feed — every notification and timeline, one glass panel.",
                 color = Color.White.copy(alpha = 0.5f),
                 fontSize = 16.sp,
                 modifier = Modifier.padding(horizontal = 32.dp)

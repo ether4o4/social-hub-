@@ -32,9 +32,10 @@ jobs:
           test -f app/build.gradle.kts
           test -f app/src/main/AndroidManifest.xml
 
-      - name: Fix Compose compiler configuration
+      - name: Normalize Android build configuration
         run: |
           sed -i '/id("org.jetbrains.kotlin.plugin.compose")/d' app/build.gradle.kts
+          sed -i '/android:icon=/d;/android:roundIcon=/d' app/src/main/AndroidManifest.xml
 
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3

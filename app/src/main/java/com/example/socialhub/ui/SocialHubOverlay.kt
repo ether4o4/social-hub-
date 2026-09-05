@@ -128,7 +128,7 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                                                 isResizing = true
                                             }
                                         }
-                                        if (event.type == PointerEventType.KeyboardArrowUp) {
+                                        if (event.type == PointerEventType.Up) {
                                             isResizing = false
                                             break
                                         }
@@ -171,7 +171,7 @@ fun SocialHubOverlay(viewModel: SocialHubViewModel = viewModel()) {
                                         toggleY = (startTop + drag).coerceIn(100f, screenHeightPx - 100f)
                                     }
                                 }
-                                if (event.type == PointerEventType.KeyboardArrowUp) {
+                                if (event.type == PointerEventType.Up) {
                                     if (!moved) {
                                         viewModel.sidebarOpen = !viewModel.sidebarOpen
                                         if (!viewModel.sidebarOpen) viewModel.closeDropdowns()

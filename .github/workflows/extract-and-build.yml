@@ -5,6 +5,7 @@ on:
     paths:
       - 'social-hub-android.zip'
       - '.github/workflows/extract-and-build.yml'
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -49,6 +50,7 @@ jobs:
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Commit extracted project
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

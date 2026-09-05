@@ -43,9 +43,10 @@ jobs:
           sed -i '/^package com.example.socialhub.ui$/a import com.example.socialhub.ui.components.FeedCard' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
           sed -i 's/viewModel\.showFilter = !viewModel\.showFilter/viewModel.toggleFilter()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
           sed -i 's/viewModel\.showFilter = false/viewModel.closeDropdowns()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
-          sed -i 's/\.Up\b/.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
+          sed -i -E 's/Icons\.[A-Za-z0-9_.]*KeyboardArrowUp/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
+          sed -i -E 's/Icons\.[A-Za-z0-9_.]*\.Up\b/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
           sed -i '/^package com.example.socialhub.ui$/a import androidx.compose.material.icons.filled.KeyboardArrowUp\nimport kotlin.math.roundToInt' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
-          ! grep -R -nE 'Icons\.[A-Za-z0-9_.]+\.Up\b' app/src/main/java || true
+          ! grep -R -nE 'Icons\.[A-Za-z0-9_.]+(\.Up|KeyboardArrowUp)\b' app/src/main/java || true
 
       - name: Persist canonical source tree
         if: github.event_name == 'push'
@@ -65,10 +66,8 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Accept licenses and install required SDK
-        run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Install required SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4

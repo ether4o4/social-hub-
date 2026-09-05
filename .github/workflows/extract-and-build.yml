@@ -3,8 +3,11 @@ name: Social Hub Android CI
 on:
   push:
     paths:
-      - 'social-hub-android.zip'
+      - 'app/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
       - '.github/workflows/extract-and-build.yml'
+      - 'social-hub-android.zip'
   pull_request:
   workflow_dispatch:
 
@@ -23,30 +26,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract Android project
+      - name: Bootstrap canonical source if needed
         run: |
-          test -f social-hub-android.zip
-          unzip -o social-hub-android.zip
-          rm social-hub-android.zip
+          if [ ! -f settings.gradle.kts ]; then
+            test -f social-hub-android.zip
+            unzip -o social-hub-android.zip
+            rm social-hub-android.zip
+          fi
           test -f settings.gradle.kts
           test -f app/build.gradle.kts
           test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/com/example/socialhub/MainActivity.kt
 
-      - name: Normalize Android build configuration
+      - name: Validate source tree
         run: |
-          sed -i '/id("org.jetbrains.kotlin.plugin.compose")/d' app/build.gradle.kts
-          sed -i '/android:icon=/d;/android:roundIcon=/d' app/src/main/AndroidManifest.xml
-
-      - name: Repair Kotlin source
-        run: |
-          sed -i 's/AnimatedVisibility(/androidx.compose.animation.AnimatedVisibility(/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
-          sed -i '/^package com.example.socialhub.ui$/a import com.example.socialhub.ui.components.FeedCard' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
-          sed -i 's/viewModel\.showFilter = !viewModel\.showFilter/viewModel.toggleFilter()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
-          sed -i 's/viewModel\.showFilter = false/viewModel.closeDropdowns()/g' app/src/main/java/com/example/socialhub/ui/SocialHubFeed.kt
-          sed -i -E 's/Icons\.[A-Za-z0-9_.]*KeyboardArrowUp/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
-          sed -i -E 's/Icons\.[A-Za-z0-9_.]*\.Up\b/Icons.Filled.KeyboardArrowUp/g' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
-          sed -i '/^package com.example.socialhub.ui$/a import androidx.compose.material.icons.filled.KeyboardArrowUp\nimport kotlin.math.roundToInt' app/src/main/java/com/example/socialhub/ui/SocialHubOverlay.kt
-          ! grep -R -nE 'Icons\.[A-Za-z0-9_.]+(\.Up|KeyboardArrowUp)\b' app/src/main/java || true
+          ! grep -R -nE 'PointerEventType\.Up\b' app/src/main/java || true
+          ! grep -R -nE 'Icons\.[A-Za-z0-9_.]+\.Up\b' app/src/main/java || true
+          ! grep -R -n 'viewModel\.showFilter\s*=' app/src/main/java || true
 
       - name: Persist canonical source tree
         if: github.event_name == 'push'
@@ -57,7 +53,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Canonical source already current."
           else
-            git commit -m "chore: promote Android source to canonical project tree"
+            git commit -m "chore: persist canonical Android source tree"
             git push
           fi
 

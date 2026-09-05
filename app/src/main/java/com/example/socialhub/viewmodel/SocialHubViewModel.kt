@@ -1,10 +1,9 @@
 package com.example.socialhub.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,8 +18,9 @@ import kotlin.random.Random
 class SocialHubViewModel : ViewModel() {
     var items = mutableStateListOf<FeedItem>()
         private set
-    var refreshMode by mutableStateOf("live")
-        private set
+    private var _refreshMode by mutableStateOf("live")
+    val refreshMode: String
+        get() = _refreshMode
     var refreshing by mutableStateOf(false)
         private set
     var lastUpdated by mutableLongStateOf(System.currentTimeMillis())
@@ -66,7 +66,7 @@ class SocialHubViewModel : ViewModel() {
 
     fun setRefreshMode(mode: String) {
         if (mode !in setOf("live", "on_open", "manual", "hourly")) return
-        refreshMode = mode
+        _refreshMode = mode
         liveJob?.cancel(); liveJob = null
         hourlyJob?.cancel(); hourlyJob = null
         when (mode) {

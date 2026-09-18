@@ -24,6 +24,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PanelActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SocialHub.Panel"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:noHistory="false" />
+
         <service
             android:name=".OverlayService"
             android:exported="false"

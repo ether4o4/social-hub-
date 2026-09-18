@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="hub_bg">#FF0F0518</color>
+    <color name="hub_glass">#FF2A1B3E</color>
+    <color name="hub_surface">#FF1A0B2E</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="app_name">Social Hub</string>
+    <string name="overlay_channel_desc">Keeps the edge panel handle available over other apps.</string>
+    <string name="overlay_channel_name">Social Hub overlay</string>
+    <string name="overlay_notification_text">Drag the edge handle to open your unified feed.</string>
+    <string name="overlay_notification_title">Social Hub is running</string>
+    <style name="Theme.SocialHub" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/hub_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <style name="Theme.SocialHub.Panel" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

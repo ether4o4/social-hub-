@@ -4,7 +4,8 @@ data class Platform(
     val id: String,
     val name: String,
     val color: String,
-    val glyph: String
+    val glyph: String,
+    val link: String = ""
 )
 
 data class FeedItem(
@@ -28,15 +29,15 @@ data class ItemStats(
 )
 
 val platforms = listOf(
-    Platform("all", "All", "#ffffff", "✦"),
-    Platform("x", "X", "#1d9bf0", "𝕏"),
-    Platform("instagram", "Instagram", "#E1306C", "◎"),
-    Platform("facebook", "Facebook", "#1877F2", "f"),
-    Platform("tiktok", "TikTok", "#25F4EE", "♪"),
-    Platform("youtube", "YouTube", "#FF0000", "▶"),
-    Platform("linkedin", "LinkedIn", "#0A66C2", "in"),
-    Platform("reddit", "Reddit", "#FF4500", "r"),
-    Platform("snapchat", "Snapchat", "#FFFC00", "👻")
+    Platform("all", "All", "#ffffff", "✦", ""),
+    Platform("x", "X", "#1d9bf0", "𝕏", "https://x.com"),
+    Platform("instagram", "Instagram", "#E1306C", "◎", "https://instagram.com"),
+    Platform("facebook", "Facebook", "#1877F2", "f", "https://facebook.com"),
+    Platform("tiktok", "TikTok", "#25F4EE", "♪", "https://tiktok.com"),
+    Platform("youtube", "YouTube", "#FF0000", "▶", "https://youtube.com"),
+    Platform("linkedin", "LinkedIn", "#0A66C2", "in", "https://linkedin.com"),
+    Platform("reddit", "Reddit", "#FF4500", "r", "https://reddit.com"),
+    Platform("snapchat", "Snapchat", "#FFFC00", "👻", "https://snapchat.com")
 )
 
 val feedItems = listOf(

@@ -18,26 +18,24 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import androidx.compose.ui.platform.ComposeView
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewTreeLifecycleOwner
-import androidx.lifecycle.ViewTreeViewModelStoreOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
-import com.example.socialhub.ui.SocialHubTheme
-import com.example.socialhub.ui.PanelRoot
 
+/**
+ * Foreground service that draws ONLY the draggable edge handle as a system overlay.
+ * The handle persists over every other app (Samsung edge-panel behaviour).
+ * Tapping or dragging the handle outward launches the floating translucent [PanelActivity],
+ * which hosts the Compose feed + per-app login. The background app stays visible and
+ * interactive because the panel is a floating window, not a fullscreen activity.
+ */
 class OverlayService : Service() {
 
     private lateinit var wm: WindowManager
     private lateinit var handle: HandleView
-    private lateinit var panel: ComposeView
-    private lateinit var owners: ServiceComposeOwners
 
     private var handleParams: WindowManager.LayoutParams = baseHandleParams()
-    private var panelParams: WindowManager.LayoutParams = basePanelParams()
     private var panelOpen = false
-    private var panelWidthPx = 0
 
     private val screenW: Int get() = Resources.getSystem().displayMetrics.widthPixels
     private val screenH: Int get() = Resources.getSystem().displayMetrics.heightPixels
@@ -51,11 +49,8 @@ class OverlayService : Service() {
             return
         }
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        panelWidthPx = ((screenW * 0.62).toInt()).coerceAtLeast(dp(320))
-
         startForeground(NOTIF_ID, buildNotification())
         buildHandle()
-        buildPanel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -64,6 +59,11 @@ class OverlayService : Service() {
             return START_NOT_STICKY
         }
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        // Keep the overlay alive when the user swipes the launcher task away.
     }
 
     // ---------- Handle ----------
@@ -152,7 +152,7 @@ class OverlayService : Service() {
         val start = cur
         val anim = android.animation.ValueAnimator.ofInt(start, nearest).apply {
             duration = 220
-            interpolator = android.view.animation.OvershootInterpolator(0.8f)
+            interpolator = OvershootInterpolator(0.8f)
             addUpdateListener {
                 handleParams.y = it.animatedValue as Int
                 try { wm.updateViewLayout(handle, handleParams) } catch (_: Exception) {}
@@ -161,58 +161,24 @@ class OverlayService : Service() {
         anim.start()
     }
 
-    // ---------- Panel ----------
-
-    private fun basePanelParams(): WindowManager.LayoutParams {
-        return WindowManager.LayoutParams(
-            panelWidthPx,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.RIGHT or Gravity.TOP
-            x = 0
-            y = 0
-        }
-    }
-
-    private fun buildPanel() {
-        owners = ServiceComposeOwners()
-        panel = ComposeView(this).apply {
-            ViewTreeLifecycleOwner.set(this, owners)
-            ViewTreeViewModelStoreOwner.set(this, owners)
-            ViewTreeSavedStateRegistryOwner.set(this, owners)
-            setContent {
-                SocialHubTheme {
-                    PanelRoot(onClose = { closePanel() })
-                }
-            }
-            translationX = panelWidthPx.toFloat()
-        }
-        panelParams = basePanelParams()
-        try {
-            wm.addView(panel, panelParams)
-            owners.create(null)
-            owners.start()
-            owners.resume()
-        } catch (e: Exception) {
-            stopSelf()
-        }
-    }
+    // ---------- Panel launch ----------
 
     fun openPanel() {
         if (panelOpen) return
         panelOpen = true
         cancelPeek()
-        panel.animate().translationX(0f).setDuration(280)
-            .setInterpolator(android.view.animation.OvershootInterpolator(0.6f)).start()
+        val intent = Intent(this, PanelActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            panelOpen = false
+        }
     }
 
     fun closePanel() {
-        if (!panelOpen) return
+        // Panel closes itself (PanelActivity.finish()); just reset state.
         panelOpen = false
-        panel.animate().translationX(panelWidthPx.toFloat()).setDuration(240).start()
         startPeek()
     }
 
@@ -227,7 +193,7 @@ class OverlayService : Service() {
             startDelay = 3500
             repeatMode = android.animation.ValueAnimator.REVERSE
             repeatCount = android.animation.ValueAnimator.INFINITE
-            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            interpolator = AccelerateDecelerateInterpolator()
             start()
         }
     }
@@ -274,12 +240,6 @@ class OverlayService : Service() {
         super.onDestroy()
         cancelPeek()
         try { wm.removeView(handle) } catch (_: Exception) {}
-        try {
-            owners.pause()
-            owners.stop()
-            owners.destroy()
-            wm.removeView(panel)
-        } catch (_: Exception) {}
         stopForeground(STOP_FOREGROUND_REMOVE)
     }
 

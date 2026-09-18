@@ -1,11 +1,11 @@
 package com.example.socialhub.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,11 +21,9 @@ import kotlin.random.Random
 
 class SocialHubViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repo = AccountRepository(application)
+    private val accountRepo = AccountRepository(application)
 
     val items = mutableStateListOf<FeedItem>()
-    val accounts = mutableStateMapOf<String, Account>()
-
     private var _refreshMode by mutableStateOf("live")
     val refreshMode: String get() = _refreshMode
     var refreshing by mutableStateOf(false)
@@ -35,16 +33,27 @@ class SocialHubViewModel(application: Application) : AndroidViewModel(applicatio
     var showSettings by mutableStateOf(false)
         private set
     val selectedPlatforms = mutableStateListOf<String>()
-        private set
     var showFilter by mutableStateOf(false)
         private set
     var expandedId by mutableStateOf<String?>(null)
         private set
 
+    // ---- Per-app accounts / login ----
+    val accounts = mutableStateMapOf<String, Account>()
     var showAccounts by mutableStateOf(false)
         private set
     var loginPlatformId by mutableStateOf<String?>(null)
         private set
+
+    private var _sidebarOpen by mutableStateOf(false)
+    var sidebarOpen: Boolean
+        get() = _sidebarOpen
+        set(value) {
+            if (_sidebarOpen == value) return
+            _sidebarOpen = value
+            if (value && refreshMode == "on_open") refresh(2)
+            if (!value) closeDropdowns()
+        }
 
     private var liveJob: Job? = null
     private var hourlyJob: Job? = null
@@ -68,12 +77,42 @@ class SocialHubViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun loadAccounts() {
-        val all = repo.all()
         accounts.clear()
-        accounts.putAll(all)
+        accounts.putAll(accountRepo.all())
     }
 
-    fun isPlatformConnected(id: String): Boolean = accounts[id]?.connected == true
+    fun isPlatformConnected(platformId: String): Boolean =
+        accounts[platformId]?.connected == true
+
+    fun toggleAccounts() {
+        showAccounts = !showAccounts
+        if (showAccounts) {
+            showFilter = false
+            showSettings = false
+            loginPlatformId = null
+        }
+    }
+
+    fun openLogin(platformId: String) {
+        loginPlatformId = platformId
+        showAccounts = false
+    }
+
+    fun closeLogin() {
+        loginPlatformId = null
+    }
+
+    fun connect(platformId: String, username: String, password: String) {
+        accountRepo.connect(platformId, username, password)
+        accounts[platformId] = Account(platformId, username, true)
+        loginPlatformId = null
+    }
+
+    fun disconnect(platformId: String) {
+        accountRepo.disconnect(platformId)
+        accounts.remove(platformId)
+        loginPlatformId = null
+    }
 
     fun setRefreshMode(mode: String) {
         if (mode !in setOf("live", "on_open", "manual", "hourly")) return
@@ -100,32 +139,6 @@ class SocialHubViewModel(application: Application) : AndroidViewModel(applicatio
     fun closeDropdowns() {
         showSettings = false
         showFilter = false
-    }
-
-    fun toggleAccounts() {
-        showAccounts = !showAccounts
-        if (showAccounts) closeDropdowns()
-    }
-
-    fun openLogin(platformId: String) {
-        loginPlatformId = platformId
-        showAccounts = false
-    }
-
-    fun closeLogin() {
-        loginPlatformId = null
-    }
-
-    fun connect(platformId: String, username: String, password: String) {
-        if (username.isBlank() || password.isBlank()) return
-        repo.connect(platformId, username.trim(), password)
-        accounts[platformId] = Account(platformId, username.trim(), true)
-        loginPlatformId = null
-    }
-
-    fun disconnect(platformId: String) {
-        repo.disconnect(platformId)
-        accounts.remove(platformId)
     }
 
     fun togglePlatform(platformId: String) {
@@ -178,9 +191,11 @@ class SocialHubViewModel(application: Application) : AndroidViewModel(applicatio
         liveJob = viewModelScope.launch {
             while (true) {
                 delay(6000)
-                addGeneratedItem()
-                trimItems()
-                lastUpdated = System.currentTimeMillis()
+                if (sidebarOpen && refreshMode == "live") {
+                    addGeneratedItem()
+                    trimItems()
+                    lastUpdated = System.currentTimeMillis()
+                }
             }
         }
     }
@@ -189,9 +204,11 @@ class SocialHubViewModel(application: Application) : AndroidViewModel(applicatio
         hourlyJob = viewModelScope.launch {
             while (true) {
                 delay(60 * 60 * 1000L)
-                addGeneratedItem()
-                trimItems()
-                lastUpdated = System.currentTimeMillis()
+                if (refreshMode == "hourly") {
+                    addGeneratedItem()
+                    trimItems()
+                    lastUpdated = System.currentTimeMillis()
+                }
             }
         }
     }

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Social Hub</string>
+    <string name="overlay_channel_name">Social Hub overlay</string>
+    <string name="overlay_channel_desc">Keeps the edge panel handle available over other apps.</string>
+    <string name="overlay_notification_title">Social Hub is running</string>
+    <string name="overlay_notification_text">Drag the edge handle to open your unified feed.</string>
+</resources>

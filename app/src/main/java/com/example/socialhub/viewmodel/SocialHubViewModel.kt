@@ -1,12 +1,16 @@
 package com.example.socialhub.viewmodel
 
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
+import android.app.Application
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.socialhub.data.Account
+import com.example.socialhub.data.AccountRepository
 import com.example.socialhub.data.FeedItem
 import com.example.socialhub.data.ItemStats
 import com.example.socialhub.data.feedItems
@@ -15,34 +19,32 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class SocialHubViewModel : ViewModel() {
-    var items = mutableStateListOf<FeedItem>()
-        private set
+class SocialHubViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repo = AccountRepository(application)
+
+    val items = mutableStateListOf<FeedItem>()
+    val accounts = mutableStateMapOf<String, Account>()
+
     private var _refreshMode by mutableStateOf("live")
-    val refreshMode: String
-        get() = _refreshMode
+    val refreshMode: String get() = _refreshMode
     var refreshing by mutableStateOf(false)
         private set
     var lastUpdated by mutableLongStateOf(System.currentTimeMillis())
         private set
     var showSettings by mutableStateOf(false)
         private set
-    var selectedPlatforms = mutableStateListOf<String>()
+    val selectedPlatforms = mutableStateListOf<String>()
         private set
     var showFilter by mutableStateOf(false)
         private set
     var expandedId by mutableStateOf<String?>(null)
         private set
 
-    private var _sidebarOpen by mutableStateOf(false)
-    var sidebarOpen: Boolean
-        get() = _sidebarOpen
-        set(value) {
-            if (_sidebarOpen == value) return
-            _sidebarOpen = value
-            if (value && refreshMode == "on_open") refresh(2)
-            if (!value) closeDropdowns()
-        }
+    var showAccounts by mutableStateOf(false)
+        private set
+    var loginPlatformId by mutableStateOf<String?>(null)
+        private set
 
     private var liveJob: Job? = null
     private var hourlyJob: Job? = null
@@ -61,8 +63,17 @@ class SocialHubViewModel : ViewModel() {
 
     init {
         items.addAll(feedItems)
+        loadAccounts()
         startLiveStream()
     }
+
+    private fun loadAccounts() {
+        val all = repo.all()
+        accounts.clear()
+        accounts.putAll(all)
+    }
+
+    fun isPlatformConnected(id: String): Boolean = accounts[id]?.connected == true
 
     fun setRefreshMode(mode: String) {
         if (mode !in setOf("live", "on_open", "manual", "hourly")) return
@@ -89,6 +100,32 @@ class SocialHubViewModel : ViewModel() {
     fun closeDropdowns() {
         showSettings = false
         showFilter = false
+    }
+
+    fun toggleAccounts() {
+        showAccounts = !showAccounts
+        if (showAccounts) closeDropdowns()
+    }
+
+    fun openLogin(platformId: String) {
+        loginPlatformId = platformId
+        showAccounts = false
+    }
+
+    fun closeLogin() {
+        loginPlatformId = null
+    }
+
+    fun connect(platformId: String, username: String, password: String) {
+        if (username.isBlank() || password.isBlank()) return
+        repo.connect(platformId, username.trim(), password)
+        accounts[platformId] = Account(platformId, username.trim(), true)
+        loginPlatformId = null
+    }
+
+    fun disconnect(platformId: String) {
+        repo.disconnect(platformId)
+        accounts.remove(platformId)
     }
 
     fun togglePlatform(platformId: String) {
@@ -141,11 +178,9 @@ class SocialHubViewModel : ViewModel() {
         liveJob = viewModelScope.launch {
             while (true) {
                 delay(6000)
-                if (sidebarOpen && refreshMode == "live") {
-                    addGeneratedItem()
-                    trimItems()
-                    lastUpdated = System.currentTimeMillis()
-                }
+                addGeneratedItem()
+                trimItems()
+                lastUpdated = System.currentTimeMillis()
             }
         }
     }
@@ -154,11 +189,9 @@ class SocialHubViewModel : ViewModel() {
         hourlyJob = viewModelScope.launch {
             while (true) {
                 delay(60 * 60 * 1000L)
-                if (refreshMode == "hourly") {
-                    addGeneratedItem()
-                    trimItems()
-                    lastUpdated = System.currentTimeMillis()
-                }
+                addGeneratedItem()
+                trimItems()
+                lastUpdated = System.currentTimeMillis()
             }
         }
     }

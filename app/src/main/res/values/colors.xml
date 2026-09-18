@@ -1,0 +1,6 @@
+<resources>
+    <color name="hub_bg">#FF0F0518</color>
+    <color name="hub_surface">#FF1A0B2E</color>
+    <color name="hub_glass">#FF2A1B3E</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

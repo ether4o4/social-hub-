@@ -106,6 +106,12 @@ fun SocialHubFeed(
                     HeaderButton(onClick = { viewModel.refresh(2) }, icon = "↻")
                     Spacer(modifier = Modifier.width(8.dp))
                     HeaderButton(
+                        onClick = { viewModel.toggleAccounts() },
+                        icon = "👤",
+                        active = viewModel.showAccounts
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    HeaderButton(
                         onClick = { viewModel.toggleSettings() },
                         icon = "⚙",
                         active = viewModel.showSettings
@@ -408,8 +414,17 @@ private fun FilterDropdown(viewModel: SocialHubViewModel) {
                         .clip(CircleShape)
                         .background(Color(android.graphics.Color.parseColor(platform.color)))
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(platform.name, color = Color.White, fontSize = 14.sp)
+                if (viewModel.isPlatformConnected(platform.id)) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF34D399))
+                    )
+                }
             }
         }
 

@@ -7,12 +7,14 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
+import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
@@ -21,6 +23,7 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 
 /**
  * Foreground service that draws ONLY the draggable edge handle as a system overlay.
@@ -48,15 +51,55 @@ class OverlayService : Service() {
             stopSelf()
             return
         }
-        wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        startForeground(NOTIF_ID, buildNotification())
-        buildHandle()
+        var foregroundOk = false
+        try {
+            wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            // Call startForeground FIRST, with the explicit type (Android 14 / targetSdk 35
+            // requires the type to be passed for typed foreground services). Use ServiceCompat
+            // so a failure here is caught instead of crashing the whole app process.
+            val notif = buildNotification()
+            foregroundOk = try {
+                ServiceCompat.startForeground(
+                    this,
+                    NOTIF_ID,
+                    notif,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+                true
+            } catch (fse: Exception) {
+                Log.e(TAG, "typed startForeground failed, falling back", fse)
+                try { startForeground(NOTIF_ID, notif); true } catch (_: Exception) { false }
+            }
+            if (foregroundOk) {
+                buildHandle()
+            } else {
+                // Could not become foreground — stop now so the system doesn't kill the app
+                // for a missing startForeground call.
+                stopSelf()
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "OverlayService.onCreate failed", e)
+            try { if (::wm.isInitialized && ::handle.isInitialized) wm.removeView(handle) } catch (_: Exception) {}
+            stopSelf()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!Settings.canDrawOverlays(this)) {
             stopSelf()
             return START_NOT_STICKY
+        }
+        // Re-assert foreground state on every start (Android 14 can redeliver).
+        try {
+            val notif = buildNotification()
+            ServiceCompat.startForeground(
+                this,
+                NOTIF_ID,
+                notif,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "onStartCommand foreground re-assert failed", e)
         }
         return START_STICKY
     }
@@ -250,5 +293,6 @@ class OverlayService : Service() {
     private companion object {
         const val NOTIF_ID = 4201
         const val CHANNEL_ID = "social_hub_overlay"
+        const val TAG = "SocialHubOverlay"
     }
 }
